@@ -4,73 +4,104 @@ import numpy as np
 import pandas as pd
 import datetime
 import time
+import re
 
-def plt_1(lst):
+def plt_(l_1, l_2, l_3):
 
-    names = [scr[0].strip() for scr in lst]
+    figure, (bar_ax, pie_ax, graph_ax) = plt.subplots(1, 3)
+
+    names = [scr[0].strip() for scr in l_1]
 
     #-- MAKE DATA --
 
     data = {}
     
-    data["Meta-рахунок"] = [scr[1] for scr in lst]
+    data["Meta-рахунок"] = [scr[1] if scr[1] != None else 0 for scr in l_1]
 
-    data["Користувацький рахунок"] = [scr[2]*10 if scr[2] != None else 0 for scr in lst]
-
-    df = pd.DataFrame(data, columns=['Meta-рахунок', 'Користувацький рахунок'], index = names)
+    data["Користувацький рахунок"] = [scr[2]*10 if scr[2] != None else 0 for scr in l_1]
 
     #-- PLOT --
 
-    df.plot.barh()
+    x=np.arange(len(names))
 
-    plt.title("Рейтинги Meta та коричтувачів")
+    bar_ax.barh(x-0.25,data["Meta-рахунок"],height=0.33,label="Meta-рахунок")
+    bar_ax.barh(x+0.25,data["Користувацький рахунок"],height=0.33,label="Користувацький рахунок")
+    
+    bar_ax.set_yticks([i for i in range(len(names))],names,rotation=45,size=6)
 
-    plt.show()
+    bar_ax.set_title("Рейтинги Meta та кориcтувачів")
 
-def plt_2(lst):
+    bar_ax.legend(loc="lower left")
 
-    names = [scr[0].strip() for scr in lst]
+    names = [scr[0].strip() for scr in l_2]
 
     #-- MAKE DATA --
     
-    x = [scr[1] for scr in lst]
+    x = [scr[1] for scr in l_2]
 
     #-- PLOT --
     
-    fig, ax = plt.subplots()
-    ax.pie(x, radius=3, center=(4, 4), frame=True, labels = names)
+    pie_ax.pie(x, radius=3, center=(4, 4), frame=True, labels=[" "]*len(names), textprops={'fontsize': 6})
 
-    ax.set(xlim=(0, 8), xticks=np.arange(1, 8),
-           ylim=(0, 8), yticks=np.arange(1, 8))
+    pie_ax.legend(names,title="Розробники",
+        loc='upper center',
+        bbox_to_anchor=(0.5,0.2),
+        fontsize="6")
 
-    plt.title("Кількість ігор, випущених кожним розробником")
+    #pie_ax.set(xlim=(0, 8), xticks=np.arange(1, 8),
+           #ylim=(0, 8), yticks=np.arange(1, 8))
 
-    plt.show()
+    pie_ax.set_xticks([])
+    pie_ax.set_yticks([])
 
-def plt_3(lst):
+    pie_ax.set_title("Кількість ігор, випущених кожним розробником")
 
-    dates = set(time.mktime(datetime.datetime.strptime(str(scr[0])[0:-3], "%Y-%m").timetuple()) for scr in lst)
-    genres = set(scr[1].strip() for scr in lst)
+    months = {"Jan": "01",
+    "Feb": "02",
+    "Mar": "03",
+    "Apr": "04",
+    "May": "05",
+    "Jun": "06",
+    "Jul": "07",
+    "Aug": "08",
+    "Sep": "09",
+    "Oct": "10",
+    "Nov": "11",
+    "Dec": "12"}
+
+    lst_2 = []
+
+    for row in l_3:
+
+        if (re.search(r"\d{4}",row[1].strip()) != None and re.search(r"\D{3}(?!$)",row[1].strip()) != None):
+            
+            y = re.search(r"\d{4}",row[1].strip()).group()
+            m = months[re.search(r"\D{3}(?!$)",row[1].strip()).group()]
+
+            lst_2.append((row[0], f"{y}-{m}"))
+
+    dates = set(time.mktime(datetime.datetime.strptime(str(scr[1]), "%Y-%m").timetuple()) for scr in lst_2)
+    genres = set(scr[0].strip() for scr in lst_2)
 
     #-- MAKE DATA --
     
-    x = list(pd.date_range(datetime.datetime.strptime("2018", "%Y"), periods=36, freq='M'))
+    x = list(pd.date_range(datetime.datetime.strptime("1995", "%Y"), periods=348, freq='M'))
     y = {}
 
     n = 0
     
     for genre in genres:
-        y[genre] = [sum(scr[1].strip() == genre
-            and time.mktime(datetime.datetime.strptime(str(scr[0])[0:-3], "%Y-%m").timetuple())
-            == time.mktime(datetime.datetime.strptime(str(i)[0:-12], "%Y-%m").timetuple()) for scr in lst) for i in x]
+        y[genre] = [sum(scr[0].strip() == genre
+            and time.mktime(datetime.datetime.strptime(str(scr[1]), "%Y-%m").timetuple())
+            == time.mktime(datetime.datetime.strptime(str(i)[0:-12], "%Y-%m").timetuple()) for scr in lst_2) for i in x]
         y[genre] = list(np.cumsum(y[genre]))
-        plt.plot(x, [i + 0.01 * n for i in y[genre]])
+        graph_ax.plot(x, [i + 0.01 * n for i in y[genre]])
         n += 1
 
     #-- PLOT --
 
-    plt.legend(list(genres))
+    graph_ax.legend(list(genres),fontsize="6")
 
-    plt.title("Кількість ігор за жанром залежно від часу")
+    graph_ax.set_title("Кількість ігор за жанром залежно від часу")
 
     plt.show()
